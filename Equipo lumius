@@ -1,0 +1,133 @@
+#include <Servo.h>
+//Definimos LCD
+#include <LiquidCrystal.h>
+LiquidCrystal LCD(7,6,5,4,3,2);
+
+//Definimos Servos
+Servo servoHorizontal;
+int servoh = 0;
+int servohLimiteSup = 160;
+int servohLimiteInf = 20;
+
+Servo servoVertical; 
+int servov = 0; 
+int servovLimiteSup = 160;
+int servovLimiteInf = 20;
+
+//Definimos LDRs
+int ldrArribaIzq = 2; 
+int ldrArribaDer = 1; 
+int ldrAbajoIzq = 3; 
+int ldrAbajoDer = 0;
+
+ void setup () 
+ {
+  //Asiganmos los pines del Arduino
+  //----Servos----
+  servoHorizontal.attach(10);
+  servoHorizontal.write(0);
+  servoVertical.attach(9);
+  servoVertical.write(0);
+  //-----LCD------
+  Serial.begin(9600);
+  LCD.begin(16, 2);
+  //-----Potencia-----
+  pinMode(A4,INPUT);
+  pinMode(A5,INPUT);
+  delay(500);
+ }
+
+void loop()
+{
+  servoh = servoHorizontal.read();
+  servov = servoVertical.read();
+  
+  //capturando valores analogicos de cada LDR
+  int arri = analogRead(ldrArribaIzq);
+  int arrd = analogRead(ldrArribaDer);
+  int abji = analogRead(ldrAbajoIzq);
+  int abjd = analogRead(ldrAbajoDer);
+  
+  // calculando el Promedio de los LDRs
+  int avgArr = (arri + arrd) / 2; 
+  int avgAbj = (abji + abjd) / 2;
+  int avgIzq = (arri + abji) / 2;
+  int avgDer = (arrd + abjd) / 2;
+
+  if (avgArr < avgAbj)
+  {
+    servoVertical.write(servov +1);
+    if (servov > servovLimiteSup) 
+     { 
+      servov = servovLimiteSup;
+     }
+    delay(10);
+  }
+  else if (avgAbj < avgArr)
+  {
+    servoVertical.write(servov -1);
+    if (servov < servovLimiteInf)
+  {
+    servov = servovLimiteInf;
+  }
+    delay(10);
+  }
+  else 
+  {
+    servoVertical.write(servov);
+  }
+  
+  if (avgIzq > avgDer)
+  {
+    servoHorizontal.write(servoh +1);
+    if (servoh > servohLimiteSup)
+    {
+    servoh = servohLimiteSup;
+    }
+    delay(10);
+  }
+  else if (avgDer > avgIzq)
+  {
+    servoHorizontal.write(servoh -1);
+    if (servoh < servohLimiteInf)
+     {
+     servoh = servohLimiteInf;
+     }
+    delay(10);
+  }
+  else 
+  {
+    servoHorizontal.write(servoh);
+  }
+  delay(50);
+  //--------------
+  float resistencia=1;
+  float ganancia = 92;
+  float corriente = 0.0;
+  float volt = 0.0;
+  for(int i=0; i<5; i++)
+  {
+    corriente = analogRead(A5)*(5/1023.0)/resistencia+corriente;
+    delay(1);
+  }
+  corriente = corriente/(ganancia*5);
+  corriente = corriente * 1000;
+  volt = corriente * ganancia;
+  LCD.setCursor(0,0);
+  LCD.print("Corriente: ");
+  LCD.print(corriente,3);
+  LCD.print(" mA");
+  LCD.setCursor(0,1);
+  LCD.print("Voltaje: ");
+  LCD.print(volt,3);
+  LCD.print(" V");
+  delay(1000);
+  corriente = 0;
+  //--------------
+  float kwh= ((volt * corriente)/1000)* 8;
+  LCD.setCursor(0,0);
+  LCD.print("KWatt x Hora: ");
+  LCD.print(kwh);
+  LCD.print(" Kwh");
+  delay(1000);
+}
